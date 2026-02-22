@@ -291,7 +291,7 @@ This module is licensed under the **PolyForm Noncommercial License 1.0.0**.
 
 See the [LICENSE](LICENSE) file for full license text.
 
-**Required Notice**: Copyright Loïc Ade (https://github.com/music-music)
+**Required Notice**: Copyright Loïc Ade (https://github.com/qqt-lo4)
 
 ## Support
 
