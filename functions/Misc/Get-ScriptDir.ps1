@@ -36,12 +36,14 @@ function Get-ScriptDir {
 
     .NOTES
         Author  : Loïc Ade
-        Version : 1.0.0
+        Version : 1.2.0
 
         1.0.0 - First version
         1.1.0 (2026-03-05)
             - Corrected bugs of Get-RootScriptPath
             - Removes -FullPath parameter (always returns full path)
+        1.2.0 (2026-03-07)
+            - InputDir can be overridden by the root script's -InputDir parameter
     #>
 
     Param(
@@ -70,13 +72,21 @@ function Get-ScriptDir {
     }
     Process {
         $sRootPath = Get-RootScriptPath
-        $sResult = $sRootPath + "\" + $PSCmdlet.ParameterSetName 
+
+        if ($InputDir) {
+            $rootArgs = Get-RootScriptArguments
+            if (-not [string]::IsNullOrEmpty($rootArgs['InputDir']) -and (Test-Path $rootArgs['InputDir'] -PathType Container)) {
+                return $rootArgs['InputDir']
+            }
+        }
+
+        $sResult = $sRootPath + "\" + $PSCmdlet.ParameterSetName
         if ($PSCmdlet.ParameterSetName -eq "tools") {
             $sResult += "\" + $ToolName
         }
         if (Test-Path ($sRootPath + "\.devfolder")) {
             $sResult = switch ($PSCmdlet.ParameterSetName) {
-                "tools" { $sResult } 
+                "tools" { $sResult }
                 default {$sResult + "\" + (Get-RootScriptName)}
             }
         }
