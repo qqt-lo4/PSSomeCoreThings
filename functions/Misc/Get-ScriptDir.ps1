@@ -22,9 +22,6 @@ function Get-ScriptDir {
     .PARAMETER ToolName
         Name of the tool subfolder under tools.
 
-    .PARAMETER FullPath
-        Return the full absolute path instead of relative.
-
     .OUTPUTS
         [String]. Directory path.
 
@@ -36,58 +33,53 @@ function Get-ScriptDir {
 
     .NOTES
         Author  : Loïc Ade
-        Version : 1.2.0
+        Version : 1.3.0
 
         1.0.0 - First version
         1.1.0 (2026-03-05)
             - Corrected bugs of Get-RootScriptPath
             - Removes -FullPath parameter (always returns full path)
-        1.2.0 (2026-03-07)
-            - InputDir can be overridden by the root script's -InputDir parameter
+        1.2.0 (2026-03-08)
+            - InputDir, OutputDir and WorkingDir can be overridden by root script parameters
+            - ParameterSetNames renamed to match parameter names
+            - Folder name derived from ParameterSetName
+        1.3.0 (2026-03-10)
+            - Uses Get-RootScriptInfo instead of Get-RootScriptPath, Get-RootScriptName and Get-RootScriptArguments
     #>
 
     Param(
-        [Parameter(ParameterSetName = "input", Mandatory)]
+        [Parameter(ParameterSetName = "InputDir", Mandatory)]
         [switch]$InputDir,
-        [Parameter(ParameterSetName = "output", Mandatory)]
+        [Parameter(ParameterSetName = "OutputDir", Mandatory)]
         [switch]$OutputDir,
-        [Parameter(ParameterSetName = "working_dir", Mandatory)]
+        [Parameter(ParameterSetName = "WorkingDir", Mandatory)]
         [switch]$WorkingDir,
-        [Parameter(ParameterSetName = "tools", Mandatory)]
+        [Parameter(ParameterSetName = "ToolsDir", Mandatory)]
         [switch]$ToolsDir,
-        [Parameter(ParameterSetName = "tools", Mandatory)]
+        [Parameter(ParameterSetName = "ToolsDir", Mandatory)]
         [string]$ToolName
     )
     Begin {
-        function Resolve-RelativePath {
-            Param(
-                [string]$From,
-                [string]$To
-            )
-            $oLocationBefore = Get-Location
-            Set-Location $From 
-            Resolve-Path -Path $To -Relative
-            Set-Location $oLocationBefore
-        }
+        $rootInfo = Get-RootScriptInfo
     }
     Process {
-        $sRootPath = Get-RootScriptPath
-
-        if ($InputDir) {
-            $rootArgs = Get-RootScriptArguments
-            if (-not [string]::IsNullOrEmpty($rootArgs['InputDir']) -and (Test-Path $rootArgs['InputDir'] -PathType Container)) {
-                return $rootArgs['InputDir']
+        if ($InputDir -or $OutputDir -or $WorkingDir) {
+            $sRootArgValue = $rootInfo.Arguments[$PSCmdlet.ParameterSetName]
+            if (-not [string]::IsNullOrEmpty($sRootArgValue) -and (Test-Path $sRootArgValue -PathType Container)) {
+                return $sRootArgValue
             }
         }
 
-        $sResult = $sRootPath + "\" + $PSCmdlet.ParameterSetName
-        if ($PSCmdlet.ParameterSetName -eq "tools") {
+        $sFolderName = $PSCmdlet.ParameterSetName -replace 'Dir$', ''
+        $sFolderName = $sFolderName.Substring(0, 1).ToLower() + $sFolderName.Substring(1)
+        $sResult = $rootInfo.Directory + "\" + $sFolderName
+        if ($PSCmdlet.ParameterSetName -eq "ToolsDir") {
             $sResult += "\" + $ToolName
         }
-        if (Test-Path ($sRootPath + "\.devfolder")) {
+        if (Test-Path ($rootInfo.Directory + "\.devfolder")) {
             $sResult = switch ($PSCmdlet.ParameterSetName) {
-                "tools" { $sResult }
-                default {$sResult + "\" + (Get-RootScriptName)}
+                "ToolsDir" { $sResult }
+                default {$sResult + "\" + $rootInfo.Name}
             }
         }
         return $sResult
